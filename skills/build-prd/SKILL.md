@@ -34,7 +34,7 @@ syntax preferences) so the agent that builds the pipeline has it.
    - **Build notes**: language and framework preferences from the notes (SQL vs Python, SDP, DABs), naming,
      environments.
 3. Write `PRD.md` next to the contract.
-4. Reply with the requirement count and the open questions.
+4. Reply with the requirement count, open questions and a summary of the completed PRD. If possible open the PRD file to show the user what you have created and call out any areas of ambiguity or where you have questions. This is the planning step that will power development so user participation and review is essential.
 
 ## Rules
 
