@@ -43,4 +43,5 @@ syntax preferences) so the agent that builds the pipeline has it.
 - No contract promise without a requirement. Count them: every expectation, every slo key, every primary key and
   every access entry gets a row.
 - Write acceptance tests against the real table names in the contract, not placeholders.
-- Plain language. A marketing analyst should understand every requirement row.
+- Plain language. A data analyst or business user should understand every requirement row.
+- Upstream sources are described and listed by name, transformation steps are described in plain english.
