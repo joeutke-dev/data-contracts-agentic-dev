@@ -3,9 +3,9 @@
 # Data Contracts for Agentic Development
 
 A data contract is a small YAML file that writes down what a data product promises. In this repo, agent skills read
-that contract and build a Databricks pipeline that keeps every promise. The pipeline uses Spark Declarative Pipelines
+that contract and build a Databricks pipeline that aligns with the contracts promise. The pipeline uses Spark Declarative Pipelines
 (SDP) and ships as a Declarative Automation Bundle (DAB). Then the platform enforces the contract on every run, and
-an LLM judge checks that the code matches the contract.
+an LLM judge in a databricks app can review that the contract is fulfilled by the code.
 
 **Write it down, build from it, enforce it.**
 
@@ -42,7 +42,7 @@ and agents can parse it, and it's easy to check that nothing was left out.
 | `expectations` | Row-level quality rules and what happens when one breaks: `warn`, `drop` or `fail` |
 | `slo` | Refresh schedule, freshness, completeness, and who gets alerted |
 | `access` | Who can read it and whether it holds PII |
-| `changes` | Additive changes are allowed; breaking changes need a new major version and notice |
+| `changes` | Additive changes like a new column are allowed; breaking changes like removal, renaming or key adjustment need a new major version and notice to consumers |
 
 A completed example for the demo use case is in
 [`reference_build/contract/contract.yml`](reference_build/contract/contract.yml), with its
@@ -81,39 +81,24 @@ most contract keys, so each key maps to one standard way to enforce it:
 
 <p align="center"><img src="docs/images/expectation-flow.png" alt="Each row is checked against the contract's expectations: keep, warn, drop or fail" width="720"></p>
 
-## 4. DABs ship the schedule, monitors and alerts with the code
+## 4. DABs ship the schedule, monitors and alerts with the pipeline
 
-The bundle deploys the parts of the contract that aren't pipeline SQL: the job schedule from `slo.refresh`,
+The bundle deploys the parts of the contract that aren't spark declarative pipelines: the job schedule from `slo.refresh`,
 freshness and completeness SQL alerts, failure emails to `slo.alert`, UC tags from `contract.domain` and
 `contract.tags`, `GRANT SELECT` for `access.readers`, and data quality monitoring (anomaly detection plus data
 profiling). One `bundle deploy` takes it all through dev to prod.
 
 <p align="center"><img src="docs/images/deploy-flow.png" alt="contract.yml slo and tags become a job schedule, data quality monitoring, SQL alerts and job tags at bundle deploy" width="820"></p>
 
-## 5. Review: an LLM judge checks the bundle against the contract
+## 5. Review: an LLM judge checks the bundle against the contract in a databricks app
 
-[`contract_review_app/`](contract_review_app/) is a Databricks App (AppKit) that runs the
-`review-pipeline-against-contract` skill as its rubric. The contract is on the left; on the right, each requirement
-gets a verdict (met, partial or missing) with file-and-line evidence, and the app checks every citation against the
-file. The list of requirements comes straight from the contract in code, so the LLM can't skip one.
+[`contract_review_app/`](contract_review_app/) is a Databricks App that intakes 2 paths, one to the root folder for the DAB and on for the contract yaml. It runs the
+`review-pipeline-against-contract` skill with an LLM. The contract is on the left; on the right, each requirement
+gets a verdict (met, partial or missing) with file-and-line evidence. The list of requirements comes straight from the contract, and the LLM judge looks at the root folder for your DAB to source evidence that a contract has been fulfilled.
 
 <p align="center"><img src="docs/images/contract-review-app.png" alt="Contract Review app: the contract on the left with each requirement marked, the judge's verdicts and evidence on the right" width="900"></p>
 
 The screenshot shows the **Mixed results** example: the broken bundle, judged with 26 met, 3 partial and 1 missing.
-
----
-
-## The demo
-
-The example data product is **daily store loyalty sales for marketing, ready by 6 AM**. Every open store should have
-at least one sale; a store above 1.5x its 28-day average gets flagged. Duplicates are kept in bronze for audit and
-removed in silver.
-
-<p align="center"><img src="docs/images/demo-flow.png" alt="Inputs become a data contract and PRD, which become a pipeline, monitors and alerts, and the conversation and skills used to build it" width="900"></p>
-
-It takes about 10 minutes: the inputs → Genie Code builds the contract, PRD and bundle with the skills → the deployed
-pipeline enforces it → the Contract Review app judges a correct bundle and one with four planted gaps. The run of show,
-prompts and gotchas are in **[docs/demo-guide.md](docs/demo-guide.md)**.
 
 ## What's in the repo
 
