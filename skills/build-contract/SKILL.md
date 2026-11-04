@@ -12,11 +12,11 @@ contract and nothing else, so everything they need must be in it.
 ## Inputs
 
 - Requirements material the user points you at: meeting notes, tickets, emails, requirements docs.
-- `templates/contract_template.yml` in this skill: the contract template. Always start from it.
+- `templates/contract_template.yml` in this skill: the contract template. Always start from it. **Any adjustments to the base contract must be approved by the user.**
 
 ## Steps
 
-1. Read every input file the user names. If they name a folder, read every file in it.
+1. Read every input file the user names/references as inputs. If they name a folder, read every file in it.
 2. Copy the template. Keep every section and every key, in the template's order, and add none.
 3. Fill each key from the inputs:
    - `contract`: name is the full three-part table name; version starts at `1.0.0`; status `draft` until the owner
@@ -40,7 +40,7 @@ contract and nothing else, so everything they need must be in it.
    a reader group, a schedule or a threshold.
 6. Write the file to the path the user asks for (default `contract/contract.yml` next to the inputs folder).
 7. Reply with: what you filled, what is TODO and the questions for the owner, **For the PRD**, and **Template
-   suggestions**.
+   suggestions**. It is crucial that the user is interviewed/knows about any sections that need to be filled out, and that they approve the contract before proceeding to the next step like building a PRD.
 
 ## Rules
 
