@@ -1,0 +1,50 @@
+# slo.freshness and slo.completeness -> SQL alerts on the data product itself.
+# Alerts fire when the comparison is TRUE.
+resources:
+  alerts:
+    orders_freshness:
+      display_name: "[${bundle.target}] orders freshness > 24h"
+      warehouse_id: ${var.warehouse_id}
+      query_text: |
+        SELECT timestampdiff(HOUR, max(last_order_ts), current_timestamp()) AS hours_stale
+        FROM ${var.catalog}.${var.schema}.daily_sales
+      evaluation:
+        source: {name: hours_stale, display: hours_stale}
+        comparison_operator: GREATER_THAN
+        threshold: {value: {double_value: 24}}       # slo.freshness
+        empty_result_state: TRIGGERED                 # no rows = no data = stale
+        notification:
+          notify_on_ok: true
+          subscriptions:
+            - user_email: ${var.alert_email}          # slo.alert
+      schedule:
+        quartz_cron_schedule: "0 30 6 * * ?"         # 30 min after the 06:00 build, not hourly
+        timezone_id: UTC
+        pause_status: UNPAUSED
+
+    orders_completeness:
+      display_name: "[${bundle.target}] orders completeness: channels with no orders"
+      warehouse_id: ${var.warehouse_id}
+      query_text: |
+        SELECT count(*) AS channels_missing
+        FROM ${var.catalog}.${var.schema}.daily_sales
+        WHERE sales_date = (SELECT max(sales_date) FROM ${var.catalog}.${var.schema}.daily_sales)
+          AND order_count = 0                           -- slo.completeness: every channel (PRD) has orders
+      evaluation:
+        source: {name: channels_missing, display: channels_missing}
+        comparison_operator: GREATER_THAN
+        threshold: {value: {double_value: 0}}
+        notification:
+          notify_on_ok: true
+          subscriptions:
+            - user_email: ${var.alert_email}
+      schedule:
+        quartz_cron_schedule: "0 15 * * * ?"
+        timezone_id: UTC
+        pause_status: UNPAUSED
+
+# Variant where system.data_quality_monitoring.table_results is readable (DQM anomaly detection results):
+#   query_text: SELECT timestampdiff(HOUR, freshness.commit_freshness.last_value, now()) AS hours_stale
+#     FROM system.data_quality_monitoring.table_results
+#     WHERE catalog_name = 'main' AND schema_name = 'commerce' AND table_name = 'daily_sales'
+#     ORDER BY event_time DESC LIMIT 1

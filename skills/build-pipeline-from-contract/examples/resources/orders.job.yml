@@ -1,0 +1,49 @@
+# slo.refresh -> schedule, contract.domain/tags/version -> tags, slo.alert -> email_notifications.
+resources:
+  jobs:
+    orders_refresh:
+      name: orders_refresh
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"   # slo.refresh
+        timezone_id: UTC                        # from the comment on slo.refresh
+        pause_status: UNPAUSED
+      tags:
+        domain: commerce
+        data_product: orders
+        contract_version: "1.0.0"
+      email_notifications:
+        on_failure:
+          - ${var.alert_email}
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - databricks-sdk>=0.97.0   # data_quality API
+      tasks:
+        - task_key: refresh_pipeline
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.orders_pipeline.id}
+            full_refresh: false
+
+        - task_key: governance
+          depends_on: [{task_key: refresh_pipeline}]
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/governance.py
+            parameters:
+              - --table=${var.catalog}.${var.schema}.daily_sales
+              - --reader-group=${var.reader_group}
+              - --tags=domain=commerce,data_product=daily_sales,contract_version=1.0.0,tags=commerce|orders   # contract.domain, table, version, contract.tags
+
+        - task_key: enable_dqm
+          depends_on: [{task_key: refresh_pipeline}]
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/enable_dqm.py
+            parameters:
+              - --schema=${var.catalog}.${var.schema}
+              - --profile-table=${var.catalog}.${var.schema}.daily_sales
+              - --timestamp-column=sales_date
+              - --warehouse-id=${var.warehouse_id}
+              - --assets-dir=${workspace.root_path}/monitoring

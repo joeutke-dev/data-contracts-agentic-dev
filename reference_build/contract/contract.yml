@@ -1,0 +1,96 @@
+# Built with the build-contract skill from inputs/01_requirements_meeting_notes.md and inputs/02_intake_ticket.md.
+contract:
+  name: main.dc_loyalty.daily_store_loyalty_sales
+  version: 1.0.0
+  status: draft
+  owner: marketing-analytics-lead@example.com
+  support: loyalty-de@example.com
+  domain: marketing
+  certified: false        # Data Architecture certifies after the first month in prod
+  tags: [marketing, loyalty, store-sales]
+  description: One row per open store per day of loyalty sales, for the 6 AM Central loyalty report
+
+table:
+  name: main.dc_loyalty.daily_store_loyalty_sales
+  layer: gold
+  type: materialized_view
+  primary_key: [sales_date, location_number]
+  scd_type:
+  sequence_by:
+  cluster_by: auto
+  cdf: true
+  row_tracking: true
+
+slo:
+  refresh: "0 0 5 * * ?"   # America/Chicago, an hour before the 6 AM loyalty report
+  freshness: 24h
+  completeness: true
+  alert: loyalty-data-oncall@example.com,loyalty-de@example.com
+
+columns:
+  - name: sales_date
+    type: DATE
+    nullable: false
+    comment: Business date of the sale, America/Chicago
+  - name: location_number
+    type: INT
+    nullable: false
+    comment: Store number
+  - name: store_name
+    type: STRING
+    nullable: false
+    comment: Store name from the store master
+  - name: region
+    type: STRING
+    nullable: false
+    comment: Store region from the store master
+  - name: txn_count
+    type: BIGINT
+    nullable: false
+    comment: Loyalty transactions after dedupe. 0 when an open store had no sales, so completeness is checkable
+  - name: member_count
+    type: BIGINT
+    nullable: false
+    comment: Distinct loyalty members who bought that day. Members are counted, never exposed
+  - name: gross_amount
+    type: DECIMAL(14,2)
+    nullable: false
+    comment: Sum of gross basket amount, USD
+  - name: discount_amount
+    type: DECIMAL(14,2)
+    nullable: false
+    comment: Sum of loyalty discounts, USD
+  - name: net_sales
+    type: DECIMAL(14,2)
+    nullable: false
+    comment: Gross amount minus loyalty discounts, USD
+  - name: avg_net_sales_28d
+    type: DECIMAL(14,2)
+    nullable: true
+    comment: Store's trailing 28-day average net_sales, excluding the current day. Makes the 1.5x rule checkable
+  - name: last_txn_ts
+    type: TIMESTAMP
+    nullable: true
+    comment: Newest transaction time for the store-day, UTC. Drives the freshness check
+
+expectations:
+  - name: pk_present
+    expr: sales_date IS NOT NULL AND location_number IS NOT NULL
+    on_violation: fail
+  - name: open_store_has_sales
+    expr: txn_count > 0
+    on_violation: warn
+  - name: within_1_5x_avg
+    expr: avg_net_sales_28d IS NULL OR net_sales <= 1.5 * avg_net_sales_28d
+    on_violation: warn
+  - name: net_sales_non_negative
+    expr: net_sales >= 0
+    on_violation: warn
+
+access:
+  readers: [marketing-analysts]
+  pii: false
+
+changes:
+  additive: allowed
+  breaking: new major version, 30-day notice to marketing

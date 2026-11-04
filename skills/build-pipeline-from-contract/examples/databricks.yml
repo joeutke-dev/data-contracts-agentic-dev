@@ -1,0 +1,48 @@
+# Example bundle root for an "orders" data product. Syntax reference only.
+bundle:
+  name: orders_pipeline
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Catalog for source and target schemas
+  schema:
+    description: Target schema the pipeline publishes to (DQM is enabled on it)
+  source_schema:
+    description: Schema holding the raw source tables
+  warehouse_id:
+    description: SQL warehouse for alerts
+  alert_email:
+    description: Who the alerts and job failures notify (slo.alert)
+  reader_group:
+    description: Group granted SELECT on the data product (access.readers)
+
+targets:
+  dev:
+    default: true
+    presets:
+      trigger_pause_status: PAUSED   # not mode: development, which renames schema resources
+    workspace:
+      host: https://<workspace>.cloud.databricks.com
+    variables:
+      catalog: main
+      schema: commerce
+      source_schema: commerce_raw
+      warehouse_id: <warehouse-id>
+      alert_email: ${workspace.current_user.userName}
+      reader_group: account users
+
+  prod:
+    mode: production
+    workspace:
+      host: https://<workspace>.cloud.databricks.com
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: prod
+      schema: commerce
+      source_schema: commerce_raw
+      warehouse_id: <warehouse-id>
+      alert_email: finance-data@example.com
+      reader_group: finance-analysts

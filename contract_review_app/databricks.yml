@@ -1,0 +1,55 @@
+bundle:
+  name: contract-review
+
+variables:
+  serving_endpoint_name:
+    description: Serving endpoint the judge calls (a Foundation Model API chat endpoint)
+    default: databricks-claude-sonnet-5-5
+  demo_root:
+    description: Workspace folder with the Genie Code demo (inputs, contract, built bundle)
+    default: /Workspace/Users/${workspace.current_user.userName}/data-contracts-demo
+  reference_root:
+    description: Workspace folder with the reference build and its broken copy
+    default: /Workspace/Users/${workspace.current_user.userName}/data-contracts-reference
+  review_skill_path:
+    description: The review skill the judge uses as its rubric (falls back to server/judge/rubric.md)
+    default: /Workspace/Users/${workspace.current_user.userName}/.assistant/skills/review-pipeline-against-contract/SKILL.md
+
+resources:
+  apps:
+    app:
+      name: "contract-review"
+      description: "Contract Review: LLM judge that checks a pipeline bundle against its data contract"
+      source_code_path: ./
+
+      # Start the app automatically on deploy.
+      lifecycle:
+        started: true
+
+      # The app.yaml contents. The app's service principal reads these paths;
+      # `../setup.sh grant-app` gives it CAN_READ on the folders.
+      config:
+        command: ["npm", "run", "start"]
+        env:
+          - name: DATABRICKS_SERVING_ENDPOINT_NAME
+            value_from: serving-endpoint
+          - name: DEFAULT_BUNDLE_PATH
+            value: ${var.demo_root}/loyalty_sales_pipeline
+          - name: DEFAULT_CONTRACT_PATH
+            value: ${var.demo_root}/contract/contract.yml
+          - name: REVIEW_SKILL_PATH
+            value: ${var.review_skill_path}
+          # Examples menu: the first is the default; `saved` opens a prerendered report from server/judge/saved/.
+          - name: JUDGE_PRESETS
+            value: '[{"label":"Contract demo","bundlePath":"${var.demo_root}/loyalty_sales_pipeline","contractPath":"${var.demo_root}/contract/contract.yml"},{"label":"Mixed results","bundlePath":"${var.reference_root}/loyalty_sales_pipeline_broken","contractPath":"${var.reference_root}/contract/contract.yml","saved":"mixed-results"}]'
+
+      # The resources which this app has access to.
+      resources:
+        - name: serving-endpoint
+          serving_endpoint:
+            name: ${var.serving_endpoint_name}
+            permission: CAN_QUERY
+
+targets:
+  default:
+    default: true

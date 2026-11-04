@@ -1,0 +1,647 @@
+{
+  "contractPath": "/Users/<you>/data-contracts-reference/contract/contract.yml",
+  "bundlePath": "/Users/<you>/data-contracts-reference/loyalty_sales_pipeline_broken",
+  "contractName": "main.dc_loyalty.daily_store_loyalty_sales",
+  "contractVersion": "1.0.0",
+  "model": "databricks-claude-sonnet-5-5",
+  "rubric": "/Workspace/Users/<you>/.assistant/skills/review-pipeline-against-contract/SKILL.md",
+  "summary": "Overall, the bundle mostly meets the contract, but it has one missing item and three partial ones. The `within_1_5x_avg` expectation is missing from the gold MV. The gold MV has no PRIMARY KEY constraint, only NOT NULL columns and the `pk_present` expectation. On SLOs, the freshness alert uses a 48h threshold instead of 24h, and no alert covers completeness (zero-count stores).",
+  "results": [
+    {
+      "id": "contract.description",
+      "section": "contract",
+      "requirement": "Table comment carries the description: \"One row per open store per day of loyalty sales, for the 6 AM Central loyalty report\"",
+      "line": 11,
+      "endLine": 11,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "19",
+          "snippet": "COMMENT 'One row per open store per day of loyalty sales, for the 6 AM Central loyalty report'",
+          "verified": true
+        }
+      ],
+      "explanation": "The gold materialized view has a table COMMENT that matches the contract description word for word."
+    },
+    {
+      "id": "contract.tags",
+      "section": "contract",
+      "requirement": "Tagged domain=marketing, tags [marketing, loyalty, store-sales], contract version 1.0.0",
+      "line": 4,
+      "endLine": 10,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "resources/loyalty_sales.job.yml",
+          "lines": "38",
+          "snippet": "- --tags=${var.tag_prefix}domain=marketing,${var.tag_prefix}data_product=daily_store_loyalty_sales,${var.tag_prefix}contract_version=1.0.0,${var.tag_prefix}tags=marketing|loyalty|store-sales",
+          "verified": true
+        },
+        {
+          "file": "src/governance.py",
+          "lines": "16",
+          "snippet": "spark.sql(f\"ALTER MATERIALIZED VIEW {a.table} SET TAGS ({tags})\")",
+          "verified": true
+        },
+        {
+          "file": "resources/loyalty_sales.job.yml",
+          "lines": "11-13",
+          "snippet": "domain: marketing\n        data_product: daily_store_loyalty_sales\n        contract_version: \"1.0.0\"",
+          "verified": true
+        }
+      ],
+      "explanation": "The governance task runs after each pipeline refresh and sets UC tags on the materialized view for domain=marketing, data_product, contract_version=1.0.0 and tags=marketing|loyalty|store-sales. The tag_prefix is empty in prod and dc_ in dev only because of shared-metastore tag policies. The job also carries domain, data_product and contract_version tags."
+    },
+    {
+      "id": "table.name",
+      "section": "table",
+      "requirement": "Dataset main.dc_loyalty.daily_store_loyalty_sales is defined",
+      "line": 14,
+      "endLine": 14,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "3",
+          "snippet": "CREATE OR REFRESH MATERIALIZED VIEW daily_store_loyalty_sales (",
+          "verified": true
+        },
+        {
+          "file": "resources/loyalty_sales.pipeline.yml",
+          "lines": "5-6",
+          "snippet": "catalog: ${var.catalog}\n      schema: ${resources.schemas.dc_loyalty.name}",
+          "verified": true
+        },
+        {
+          "file": "databricks.yml",
+          "lines": "13",
+          "snippet": "default: main",
+          "verified": true
+        }
+      ],
+      "explanation": "The short name is defined in the pipeline SQL. The pipeline catalog resolves to main and the schema to dc_loyalty (the schema resource's name is ${var.schema}, default dc_loyalty), in both targets."
+    },
+    {
+      "id": "table.type",
+      "section": "table",
+      "requirement": "Defined as a materialized_view",
+      "line": 16,
+      "endLine": 16,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "3",
+          "snippet": "CREATE OR REFRESH MATERIALIZED VIEW daily_store_loyalty_sales (",
+          "verified": true
+        }
+      ],
+      "explanation": "The table is created as a MATERIALIZED VIEW."
+    },
+    {
+      "id": "table.primary_key",
+      "section": "table",
+      "requirement": "Primary key (sales_date, location_number), key columns NOT NULL",
+      "line": 17,
+      "endLine": 17,
+      "status": "partial",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "4-5",
+          "snippet": "sales_date DATE NOT NULL COMMENT 'Business date of the sale, America/Chicago',\n  location_number INT NOT NULL COMMENT 'Store number',",
+          "verified": true
+        }
+      ],
+      "explanation": "Both key columns are NOT NULL, but there is no PRIMARY KEY constraint on the gold MV. Only the pk_present expectation exists, and it is not a key constraint. The only PRIMARY KEY in the bundle is on the silver loyalty_txn table."
+    },
+    {
+      "id": "table.cluster_by",
+      "section": "table",
+      "requirement": "Clustered by auto",
+      "line": 20,
+      "endLine": 20,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "20",
+          "snippet": "CLUSTER BY AUTO",
+          "verified": true
+        }
+      ],
+      "explanation": "The gold MV uses CLUSTER BY AUTO."
+    },
+    {
+      "id": "table.cdf",
+      "section": "table",
+      "requirement": "Change data feed enabled",
+      "line": 21,
+      "endLine": 21,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "21",
+          "snippet": "TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true', 'delta.enableRowTracking' = 'true')",
+          "verified": true
+        }
+      ],
+      "explanation": "delta.enableChangeDataFeed is set to true on the gold MV."
+    },
+    {
+      "id": "table.row_tracking",
+      "section": "table",
+      "requirement": "Row tracking enabled",
+      "line": 22,
+      "endLine": 22,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "21",
+          "snippet": "TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true', 'delta.enableRowTracking' = 'true')",
+          "verified": true
+        }
+      ],
+      "explanation": "The contracted gold materialized view daily_store_loyalty_sales sets delta.enableRowTracking = 'true' in TBLPROPERTIES."
+    },
+    {
+      "id": "columns.sales_date",
+      "section": "columns",
+      "requirement": "sales_date DATE NOT NULL, comment \"Business date of the sale, America/Chicago\"",
+      "line": 31,
+      "endLine": 34,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "4",
+          "snippet": "sales_date DATE NOT NULL COMMENT 'Business date of the sale, America/Chicago',",
+          "verified": true
+        }
+      ],
+      "explanation": "Explicit schema on the gold MV has the same type, NOT NULL and comment text."
+    },
+    {
+      "id": "columns.location_number",
+      "section": "columns",
+      "requirement": "location_number INT NOT NULL, comment \"Store number\"",
+      "line": 35,
+      "endLine": 38,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "5",
+          "snippet": "location_number INT NOT NULL COMMENT 'Store number',",
+          "verified": true
+        }
+      ],
+      "explanation": "Type INT, NOT NULL and comment all match the contract."
+    },
+    {
+      "id": "columns.store_name",
+      "section": "columns",
+      "requirement": "store_name STRING NOT NULL, comment \"Store name from the store master\"",
+      "line": 39,
+      "endLine": 42,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "6",
+          "snippet": "store_name STRING NOT NULL COMMENT 'Store name from the store master',",
+          "verified": true
+        }
+      ],
+      "explanation": "Type STRING, NOT NULL and comment all match the contract."
+    },
+    {
+      "id": "columns.region",
+      "section": "columns",
+      "requirement": "region STRING NOT NULL, comment \"Store region from the store master\"",
+      "line": 43,
+      "endLine": 46,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "7",
+          "snippet": "region STRING NOT NULL COMMENT 'Store region from the store master',",
+          "verified": true
+        }
+      ],
+      "explanation": "Type STRING, NOT NULL and comment all match the contract."
+    },
+    {
+      "id": "columns.txn_count",
+      "section": "columns",
+      "requirement": "txn_count BIGINT NOT NULL, comment \"Loyalty transactions after dedupe. 0 when an open store had no sales, so completeness is checkable\"",
+      "line": 47,
+      "endLine": 50,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "8",
+          "snippet": "txn_count BIGINT NOT NULL COMMENT 'Loyalty transactions after dedupe. 0 when an open store had no sales, so completeness is checkable',",
+          "verified": true
+        }
+      ],
+      "explanation": "Type BIGINT, NOT NULL and the full comment text match the contract."
+    },
+    {
+      "id": "columns.member_count",
+      "section": "columns",
+      "requirement": "member_count BIGINT NOT NULL, comment \"Distinct loyalty members who bought that day. Members are counted, never exposed\"",
+      "line": 51,
+      "endLine": 54,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "9",
+          "snippet": "member_count BIGINT NOT NULL COMMENT 'Distinct loyalty members who bought that day. Members are counted, never exposed',",
+          "verified": true
+        }
+      ],
+      "explanation": "Type BIGINT, NOT NULL and the comment text all match the contract exactly."
+    },
+    {
+      "id": "columns.gross_amount",
+      "section": "columns",
+      "requirement": "gross_amount DECIMAL(14,2) NOT NULL, comment \"Sum of gross basket amount, USD\"",
+      "line": 55,
+      "endLine": 58,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "10",
+          "snippet": "gross_amount DECIMAL(14,2) NOT NULL COMMENT 'Sum of gross basket amount, USD',",
+          "verified": true
+        }
+      ],
+      "explanation": "Type, NOT NULL and comment match the contract."
+    },
+    {
+      "id": "columns.discount_amount",
+      "section": "columns",
+      "requirement": "discount_amount DECIMAL(14,2) NOT NULL, comment \"Sum of loyalty discounts, USD\"",
+      "line": 59,
+      "endLine": 62,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "11",
+          "snippet": "discount_amount DECIMAL(14,2) NOT NULL COMMENT 'Sum of loyalty discounts, USD',",
+          "verified": true
+        }
+      ],
+      "explanation": "Type, NOT NULL and comment match the contract."
+    },
+    {
+      "id": "columns.net_sales",
+      "section": "columns",
+      "requirement": "net_sales DECIMAL(14,2) NOT NULL, comment \"Gross amount minus loyalty discounts, USD\"",
+      "line": 63,
+      "endLine": 66,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "12",
+          "snippet": "net_sales DECIMAL(14,2) NOT NULL COMMENT 'Gross amount minus loyalty discounts, USD',",
+          "verified": true
+        }
+      ],
+      "explanation": "Type, NOT NULL and comment match the contract."
+    },
+    {
+      "id": "columns.avg_net_sales_28d",
+      "section": "columns",
+      "requirement": "avg_net_sales_28d DECIMAL(14,2) nullable, comment \"Store's trailing 28-day average net_sales, excluding the current day. Makes the 1.5x rule checkable\"",
+      "line": 67,
+      "endLine": 70,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "13",
+          "snippet": "avg_net_sales_28d DECIMAL(14,2) COMMENT 'Store''s trailing 28-day average net_sales, excluding the current day. Makes the 1.5x rule checkable',",
+          "verified": true
+        }
+      ],
+      "explanation": "Type DECIMAL(14,2), no NOT NULL so it is nullable, and the comment matches (the apostrophe is escaped as '' in SQL)."
+    },
+    {
+      "id": "columns.last_txn_ts",
+      "section": "columns",
+      "requirement": "last_txn_ts TIMESTAMP nullable, comment \"Newest transaction time for the store-day, UTC. Drives the freshness check\"",
+      "line": 71,
+      "endLine": 74,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "14",
+          "snippet": "last_txn_ts TIMESTAMP COMMENT 'Newest transaction time for the store-day, UTC. Drives the freshness check',",
+          "verified": true
+        }
+      ],
+      "explanation": "The explicit schema of the gold MV declares last_txn_ts as TIMESTAMP with no NOT NULL, which matches nullable: true. The comment is identical to the contract's."
+    },
+    {
+      "id": "expectations.pk_present",
+      "section": "expectations",
+      "requirement": "sales_date IS NOT NULL AND location_number IS NOT NULL, on violation fail",
+      "line": 77,
+      "endLine": 79,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "15",
+          "snippet": "CONSTRAINT pk_present EXPECT (sales_date IS NOT NULL AND location_number IS NOT NULL) ON VIOLATION FAIL UPDATE,",
+          "verified": true
+        }
+      ],
+      "explanation": "Same name and expression on the gold MV, with ON VIOLATION FAIL UPDATE, which matches fail."
+    },
+    {
+      "id": "expectations.open_store_has_sales",
+      "section": "expectations",
+      "requirement": "txn_count > 0, on violation warn",
+      "line": 80,
+      "endLine": 82,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "16",
+          "snippet": "CONSTRAINT open_store_has_sales EXPECT (txn_count > 0),",
+          "verified": true
+        }
+      ],
+      "explanation": "Same name and expression on the gold MV. There is no ON VIOLATION clause, so it warns."
+    },
+    {
+      "id": "expectations.within_1_5x_avg",
+      "section": "expectations",
+      "requirement": "avg_net_sales_28d IS NULL OR net_sales <= 1.5 * avg_net_sales_28d, on violation warn",
+      "line": 83,
+      "endLine": 85,
+      "status": "missing",
+      "evidence": [],
+      "explanation": "No constraint named within_1_5x_avg or with an equivalent expression exists on the gold MV. The column avg_net_sales_28d is computed, but nothing checks the 1.5x rule."
+    },
+    {
+      "id": "expectations.net_sales_non_negative",
+      "section": "expectations",
+      "requirement": "net_sales >= 0, on violation warn",
+      "line": 86,
+      "endLine": 88,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "17",
+          "snippet": "CONSTRAINT net_sales_non_negative EXPECT (net_sales >= 0)",
+          "verified": true
+        }
+      ],
+      "explanation": "Same name and expression on the gold MV. There is no ON VIOLATION clause, so it warns."
+    },
+    {
+      "id": "slo.refresh",
+      "section": "slo",
+      "requirement": "Job runs on \"0 0 5 * * ?\"",
+      "line": 25,
+      "endLine": 25,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "resources/loyalty_sales.job.yml",
+          "lines": "7",
+          "snippet": "quartz_cron_expression: \"0 0 5 * * ?\"   # slo.refresh: 5:00, an hour before the 6 AM report (PRD B4)",
+          "verified": true
+        },
+        {
+          "file": "resources/loyalty_sales.job.yml",
+          "lines": "8",
+          "snippet": "timezone_id: America/Chicago            # from the comment on slo.refresh",
+          "verified": true
+        }
+      ],
+      "explanation": "The job runs the pipeline on the exact cron expression, in the America/Chicago timezone from the contract comment, and the schedule is UNPAUSED."
+    },
+    {
+      "id": "slo.freshness",
+      "section": "slo",
+      "requirement": "Alert when data is older than 24h",
+      "line": 26,
+      "endLine": 26,
+      "status": "partial",
+      "evidence": [
+        {
+          "file": "resources/loyalty_sales.alerts.yml",
+          "lines": "8",
+          "snippet": "SELECT timestampdiff(HOUR, max(last_txn_ts), current_timestamp()) AS hours_stale",
+          "verified": true
+        },
+        {
+          "file": "resources/loyalty_sales.alerts.yml",
+          "lines": "13",
+          "snippet": "threshold: {value: {double_value: 48}}",
+          "verified": true
+        }
+      ],
+      "explanation": "A SQL alert measures data age in hours, but its threshold is 48 while the contract says 24h. The display name says 24h, but the code uses 48."
+    },
+    {
+      "id": "slo.completeness",
+      "section": "slo",
+      "requirement": "Every expected entity has data: missing entities show as zero rows, and an alert fires on them",
+      "line": 27,
+      "endLine": 27,
+      "status": "partial",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "54",
+          "snippet": "FROM expected e LEFT JOIN daily d USING (sales_date, location_number)",
+          "verified": true
+        },
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "48",
+          "snippet": "coalesce(d.txn_count, 0) AS txn_count,",
+          "verified": true
+        }
+      ],
+      "explanation": "The table makes missing stores visible as zero-count rows, but the only alert is the freshness one. No SQL alert counts zero-count stores on the latest date. The open_store_has_sales expectation only logs."
+    },
+    {
+      "id": "slo.alert",
+      "section": "slo",
+      "requirement": "Alerts and failures notify loyalty-data-oncall@example.com,loyalty-de@example.com",
+      "line": 28,
+      "endLine": 28,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "resources/loyalty_sales.job.yml",
+          "lines": "15-17",
+          "snippet": "on_failure:\n  - ${var.alert_email}\n  - ${var.alert_email_2}",
+          "verified": true
+        },
+        {
+          "file": "resources/loyalty_sales.alerts.yml",
+          "lines": "18-19",
+          "snippet": "- user_email: ${var.alert_email}\n- user_email: ${var.alert_email_2}",
+          "verified": true
+        },
+        {
+          "file": "databricks.yml",
+          "lines": "48-49",
+          "snippet": "alert_email: loyalty-data-oncall@example.com\n      alert_email_2: loyalty-de@example.com",
+          "verified": true
+        }
+      ],
+      "explanation": "Job failure notifications and the alert subscriptions both use the two variables, which resolve to the contract emails in prod. Dev uses the developer's address, which is allowed."
+    },
+    {
+      "id": "dqm",
+      "section": "slo",
+      "requirement": "Data quality monitoring enabled on the table or its schema",
+      "line": 24,
+      "endLine": 24,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "resources/loyalty_sales.job.yml",
+          "lines": "40",
+          "snippet": "- task_key: enable_dqm",
+          "verified": true
+        },
+        {
+          "file": "src/enable_dqm.py",
+          "lines": "36-38",
+          "snippet": "w.data_quality.create_monitor(\n    dq.Monitor(object_type=\"schema\", object_id=schema.schema_id, anomaly_detection_config=dq.AnomalyDetectionConfig())\n)",
+          "verified": true
+        },
+        {
+          "file": "src/enable_dqm.py",
+          "lines": "65",
+          "snippet": "w.data_quality.create_monitor(dq.Monitor(object_type=\"table\", object_id=table.table_id, data_profiling_config=profiling))",
+          "verified": true
+        }
+      ],
+      "explanation": "The job's enable_dqm task runs after each pipeline refresh. It enables anomaly detection on the schema and data profiling on the contracted table."
+    },
+    {
+      "id": "access.readers",
+      "section": "access",
+      "requirement": "SELECT granted to marketing-analysts",
+      "line": 91,
+      "endLine": 91,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/governance.py",
+          "lines": "19",
+          "snippet": "spark.sql(f\"GRANT SELECT ON TABLE {a.table} TO `{a.reader_group}`\")",
+          "verified": true
+        },
+        {
+          "file": "databricks.yml",
+          "lines": "50",
+          "snippet": "reader_group: marketing-analysts",
+          "verified": true
+        },
+        {
+          "file": "resources/loyalty_sales.job.yml",
+          "lines": "37",
+          "snippet": "- --reader-group=${var.reader_group}",
+          "verified": true
+        }
+      ],
+      "explanation": "The governance task runs after each pipeline refresh and grants SELECT on the contracted table to the reader group. In prod that group resolves to marketing-analysts. Dev uses the stand-in 'account users', which the rubric allows."
+    },
+    {
+      "id": "access.pii",
+      "section": "access",
+      "requirement": "No PII exposed",
+      "line": 92,
+      "endLine": 92,
+      "status": "met",
+      "evidence": [
+        {
+          "file": "src/pipeline/daily_store_loyalty_sales.sql",
+          "lines": "9",
+          "snippet": "member_count BIGINT NOT NULL COMMENT 'Distinct loyalty members who bought that day. Members are counted, never exposed',",
+          "verified": true
+        }
+      ],
+      "explanation": "The contract sets pii to false, so no masks or row filters are required. The gold table also exposes only aggregated counts and amounts, with no member identifiers."
+    },
+    {
+      "id": "changes",
+      "section": "changes",
+      "requirement": "Change policy (process rule, not checkable in code)",
+      "line": 95,
+      "endLine": 96,
+      "status": "not_applicable",
+      "evidence": [],
+      "explanation": "This is a process and change-management rule (versioning and notice period). Code cannot check it, so it is not applicable."
+    }
+  ],
+  "files": [
+    {
+      "path": "databricks.yml",
+      "lines": 55
+    },
+    {
+      "path": "resources/dc_loyalty.schema.yml",
+      "lines": 8
+    },
+    {
+      "path": "resources/loyalty_sales.alerts.yml",
+      "lines": 27
+    },
+    {
+      "path": "resources/loyalty_sales.job.yml",
+      "lines": 51
+    },
+    {
+      "path": "resources/loyalty_sales.pipeline.yml",
+      "lines": 16
+    },
+    {
+      "path": "src/enable_dqm.py",
+      "lines": 67
+    },
+    {
+      "path": "src/governance.py",
+      "lines": 21
+    },
+    {
+      "path": "src/pipeline/daily_store_loyalty_sales.sql",
+      "lines": 62
+    },
+    {
+      "path": "src/pipeline/loyalty_txn_raw.sql",
+      "lines": 10
+    },
+    {
+      "path": "src/pipeline/loyalty_txn.sql",
+      "lines": 38
+    }
+  ],
+  "skipped": [],
+  "elapsedMs": 20097,
+  "savedAt": "2026-10-28T00:43:10Z"
+}

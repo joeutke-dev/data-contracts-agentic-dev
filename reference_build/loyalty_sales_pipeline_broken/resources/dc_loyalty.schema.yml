@@ -1,0 +1,7 @@
+resources:
+  schemas:
+    dc_loyalty:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+      comment: Loyalty sales data product (contract daily_store_loyalty_sales v1.0.0)
+

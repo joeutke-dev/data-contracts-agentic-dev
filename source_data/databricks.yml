@@ -1,0 +1,18 @@
+# Source data for the data contracts demo. Not part of the contract: this stands in for the POS feed,
+# the store master and the loyalty member list that a retailer would already have.
+bundle:
+  name: dc_loyalty_source_data
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Catalog for the source schema (pass --var catalog=... if not main)
+    default: main
+  source_schema:
+    default: dc_loyalty_src
+
+targets:
+  dev:
+    default: true

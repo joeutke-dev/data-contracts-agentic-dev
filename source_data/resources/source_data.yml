@@ -1,0 +1,26 @@
+resources:
+  schemas:
+    dc_loyalty_src:
+      catalog_name: ${var.catalog}
+      name: ${var.source_schema}
+      comment: Synthetic POS loyalty feed, store master and members for the data contracts demo
+
+  jobs:
+    generate_source_data:
+      name: dc_loyalty_generate_source_data
+      parameters:
+        - name: mode
+          default: reset      # reset = rebuild 60 days through yesterday; append = add the missing days up to yesterday
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+      tasks:
+        - task_key: generate
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/generate.py
+            parameters:
+              - --catalog=${var.catalog}
+              - --schema=${resources.schemas.dc_loyalty_src.name}
+              - --mode={{job.parameters.mode}}

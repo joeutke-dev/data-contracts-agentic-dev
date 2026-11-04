@@ -1,0 +1,15 @@
+resources:
+  pipelines:
+    loyalty_sales_pipeline:
+      name: loyalty_sales_pipeline
+      catalog: ${var.catalog}
+      schema: ${resources.schemas.dc_loyalty.name}
+      serverless: true
+      channel: CURRENT
+      root_path: ../src/pipeline
+      libraries:
+        - glob:
+            include: ../src/pipeline/**
+      configuration:
+        source_catalog: ${var.catalog}
+        source_schema: ${var.source_schema}

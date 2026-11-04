@@ -1,0 +1,48 @@
+# slo.freshness and slo.completeness -> SQL alerts on the data product. Alerts fire when the comparison is TRUE.
+resources:
+  alerts:
+    loyalty_sales_freshness:
+      display_name: "[${bundle.target}] daily_store_loyalty_sales freshness > 24h"
+      warehouse_id: ${var.warehouse_id}
+      query_text: |
+        SELECT timestampdiff(HOUR, max(last_txn_ts), current_timestamp()) AS hours_stale
+        FROM ${var.catalog}.${var.schema}.daily_store_loyalty_sales
+      evaluation:
+        source: {name: hours_stale, display: hours_stale}
+        comparison_operator: GREATER_THAN
+        threshold: {value: {double_value: 24}}   # slo.freshness: 24h
+        empty_result_state: TRIGGERED             # no data = stale
+        notification:
+          notify_on_ok: true
+          subscriptions:                          # slo.alert
+            - user_email: ${var.alert_email}
+            - user_email: ${var.alert_email_2}
+      schedule:
+        # 05:30, right after the 5:00 build. Not hourly: just before each build the newest data is ~29h old,
+        # so an hourly check would fire every morning (caught by Genie Code while building the contract).
+        quartz_cron_schedule: "0 30 5 * * ?"
+        timezone_id: America/Chicago
+        pause_status: UNPAUSED
+
+    loyalty_sales_completeness:
+      display_name: "[${bundle.target}] daily_store_loyalty_sales completeness: open stores with no sales"
+      warehouse_id: ${var.warehouse_id}
+      query_text: |
+        -- slo.completeness: every OPEN store (PRD B5) has a sale on the latest sales_date
+        SELECT count(*) AS open_stores_without_sales
+        FROM ${var.catalog}.${var.schema}.daily_store_loyalty_sales
+        WHERE sales_date = (SELECT max(sales_date) FROM ${var.catalog}.${var.schema}.daily_store_loyalty_sales)
+          AND txn_count = 0
+      evaluation:
+        source: {name: open_stores_without_sales, display: open_stores_without_sales}
+        comparison_operator: GREATER_THAN
+        threshold: {value: {double_value: 0}}
+        notification:
+          notify_on_ok: true
+          subscriptions:
+            - user_email: ${var.alert_email}
+            - user_email: ${var.alert_email_2}
+      schedule:
+        quartz_cron_schedule: "0 15 * * * ?"      # hourly at :15, so the 5:00 build is checked by 5:15
+        timezone_id: America/Chicago
+        pause_status: UNPAUSED

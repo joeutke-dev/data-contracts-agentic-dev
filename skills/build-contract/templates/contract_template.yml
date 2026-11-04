@@ -1,0 +1,50 @@
+# Data contract template, v1 (from the "Data Contracts in Agentic Development" deck).
+# Fill every key. Use true/false, or leave a value blank if it does not apply.
+# Don't add or remove keys or sections. A requirement the template can't hold goes in the PRD, and can be
+# suggested for the next template version.
+contract:
+  name:            # catalog.schema.table
+  version: 1.0.0
+  status:          # draft | active | deprecated
+  owner:
+  support:
+  domain:
+  certified:
+  tags: []
+  description:
+
+table:
+  name:            # catalog.schema.table
+  layer:           # bronze | silver | gold
+  type:            # streaming_table | materialized_view
+  primary_key: []
+  scd_type:
+  sequence_by:
+  cluster_by:
+  cdf:
+  row_tracking:
+
+slo:
+  refresh:         # Quartz cron for the build job
+  freshness:       # max age of the newest data, e.g. 24h
+  completeness:    # true when every expected entity must have data
+  alert:           # comma-separated emails
+
+columns:
+  - name:
+    type:
+    nullable:
+    comment:
+
+expectations:
+  - name:
+    expr:
+    on_violation:  # warn | drop | fail
+
+access:
+  readers: []
+  pii:
+
+changes:
+  additive:
+  breaking:

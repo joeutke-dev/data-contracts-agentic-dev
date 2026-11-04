@@ -1,0 +1,7 @@
+resources:
+  schemas:
+    commerce:                       # the schema in table.name; DQM anomaly detection runs on it
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+      comment: Orders data product (contract orders v1.0.0)
+

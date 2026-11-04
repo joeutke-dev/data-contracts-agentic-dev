@@ -1,0 +1,69 @@
+contract:
+  name: main.commerce.daily_sales
+  version: 1.0.0
+  status: draft
+  owner: finance-lead@example.com
+  support: commerce-de@example.com
+  domain: commerce
+  certified: false
+  tags: [commerce, orders]
+  description: One row per day and channel, for finance
+
+table:
+  name: main.commerce.daily_sales
+  layer: gold
+  type: materialized_view
+  primary_key: [sales_date, channel]
+  scd_type:
+  sequence_by:
+  cluster_by: auto
+  cdf: true
+  row_tracking: true
+
+slo:
+  refresh: "0 0 6 * * ?"   # UTC
+  freshness: 24h
+  completeness: true
+  alert: finance-data@example.com
+
+columns:
+  - name: sales_date
+    type: DATE
+    nullable: false
+    comment: order date, UTC
+  - name: channel
+    type: STRING
+    nullable: false
+    comment: POS or APP
+  - name: order_count
+    type: BIGINT
+    nullable: false
+  - name: net_sales
+    type: DECIMAL(14,2)
+    nullable: false
+  - name: refund_amount
+    type: DECIMAL(14,2)
+    nullable: true
+    comment: refunds issued that day
+  - name: last_order_ts
+    type: TIMESTAMP
+    nullable: true
+
+expectations:
+  - name: pk_present
+    expr: sales_date IS NOT NULL AND channel IS NOT NULL
+    on_violation: fail
+  - name: channel_has_orders
+    expr: order_count > 0
+    on_violation: warn
+  - name: net_sales_non_negative
+    expr: net_sales >= 0
+    on_violation: warn
+
+access:
+  readers: [finance-analysts]
+  pii: false
+
+changes:
+  additive: allowed
+  breaking: new major version, 30-day notice

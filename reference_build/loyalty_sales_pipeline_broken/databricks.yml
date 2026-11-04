@@ -1,0 +1,50 @@
+# Daily store loyalty sales: built with the build-pipeline-from-contract skill from contract/contract.yml v1.0.0.
+# Deliberately broken copy for the judge demo: within_1_5x_avg removed, the freshness alert at 48h, the
+# completeness alert deleted, and the PRIMARY KEY dropped from the gold table. Never deploy.
+bundle:
+  name: loyalty_sales_pipeline
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Catalog for source and target schemas (must match the catalog in contract table.name)
+    default: main
+  schema:
+    description: Target schema (table.name); DQM anomaly detection runs on it
+    default: dc_loyalty
+  source_schema:
+    description: Schema with the POS feed, store master and members
+    default: dc_loyalty_src
+  warehouse_id:
+    description: SQL warehouse for alerts and data profiling (pass --var warehouse_id=...)
+  alert_email:
+    description: slo.alert recipient
+  alert_email_2:
+    description: second slo.alert recipient
+  reader_group:
+    description: access.readers group granted SELECT
+  tag_prefix:
+    description: Prefix for UC tag keys. Empty in prod; dc_ in dev, so governed tag policies on a shared metastore (domain, data_product) do not block the build
+    default: ""
+
+targets:
+  dev:
+    default: true
+    presets:
+      trigger_pause_status: PAUSED   # not mode: development, which renames schema resources
+    variables:
+      alert_email: ${workspace.current_user.userName}
+      alert_email_2: ${workspace.current_user.userName}
+      reader_group: account users    # stand-in: marketing-analysts doesn't exist in dev
+      tag_prefix: dc_                # avoids governed tag policies on domain / data_product in shared dev
+
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      alert_email: loyalty-data-oncall@example.com
+      alert_email_2: loyalty-de@example.com
+      reader_group: marketing-analysts

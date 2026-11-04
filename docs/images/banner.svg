@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 160" width="880" height="160">
+  <defs><style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;700&amp;family=DM+Mono&amp;display=swap');
+    .t{font-family:'DM Sans',Helvetica,Arial,sans-serif;font-weight:700;font-size:44px;fill:#1B3139}
+    .s{font-family:'DM Sans',Helvetica,Arial,sans-serif;font-weight:500;font-size:19px;fill:#6B7780}
+    .m{font-family:'DM Mono',Menlo,monospace;font-size:15px;fill:#FF3621;letter-spacing:.5px}
+  </style></defs>
+  <rect width="880" height="160" rx="10" fill="#F9F7F4"/>
+  <g transform="translate(36 28) scale(1.6)"><rect x="0.75" y="0.75" width="62.5" height="62.5" rx="14" fill="#fff" stroke="#E6E9EB" stroke-width="1.5"/><g transform="translate(8 8) scale(2)"><polygon points="3,2 12.5,2 17.5,7 17.5,22 3,22" fill="#FABFBA"/>
+<polygon points="12.5,2 17.5,7 12.5,7" fill="#FF5F46"/>
+<rect x="6" y="9.5" width="2.5" height="2" fill="#FF5F46"/><rect x="9.5" y="9.5" width="5" height="2" fill="#FF5F46"/>
+<rect x="6" y="13.5" width="2.5" height="2" fill="#FF5F46"/><rect x="9.5" y="13.5" width="3" height="2" fill="#FF5F46"/>
+<polygon points="17.5,12.2 21.6,14.6 21.6,19.4 17.5,21.8 13.4,19.4 13.4,14.6" fill="#FF5F46" stroke="#FFFFFF" stroke-width="2.2" stroke-linejoin="round"/>
+<polyline points="15.6,17.1 17,18.5 19.5,16" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linejoin="miter"/></g></g>
+  <text x="166" y="76" class="t">Data Contracts</text>
+  <text x="166" y="106" class="s">for agentic development on Databricks</text>
+  <text x="166" y="132" class="m">contract.yml → skills → SDP + DABs → enforced</text>
+</svg>
